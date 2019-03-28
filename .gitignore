@@ -1,0 +1,7 @@
+pyrthomas.egg-info
+build
+dist
+.idea
+__pycache__
+*.pyc
+graph_analytica.gpickle
