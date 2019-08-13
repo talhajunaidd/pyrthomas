@@ -1,39 +1,34 @@
+import io
 from operator import eq
 from unittest import TestCase
 
 import networkx as nx
 
-from .cytoscape import read_sif, write_sif
-from .models import Node, Edge
-from .network import NetworkService
-from .network_analyser import NetworkAnalyser
+from pyrthomas.cytoscape import read_sif, write_sif
+from pyrthomas.network_analyser import NetworkAnalyser
 
 
 class NetworkTestCase(TestCase):
     def setUp(self):
-        self.network_service = NetworkService()
-        x = Node('x', 0, 2)
-        y = Node('y', 0, 1)
-        edge1 = Edge(x.id, y.id, 1)
-        edge2 = Edge(y.id, x.id, -1)
-        edge3 = Edge(x.id, x.id, 2)
-        self.network_service.add_node(x)
-        self.network_service.add_node(y)
-        self.network_service.add_edge(edge1)
-        self.network_service.add_edge(edge2)
-        self.network_service.add_edge(edge3)
-
-    def test_predecessor_combinations(self):
-        predecessor_combinations = NetworkAnalyser.get_predecessors(self.network_service.network)
-        expected_x = ((), ('y',), ('x',), ('y', 'x'))
-        self.assertTupleEqual(predecessor_combinations['x'], expected_x)
+        self.network = nx.DiGraph()
+        self.network.add_edge('x', 'y', weight=1)
+        self.network.add_edge('x', 'x', weight=2)
+        self.network.add_edge('y', 'x', weight=-1)
+        # G = nx.DiGraph()
+        # G.add_edge('BTK', 'MAL', weight=1)
+        # G.add_edge('MAL', 'NFKB', weight=1)
+        # G.add_edge('NFKB', 'INCY', weight=1)
+        # G.add_edge('INCY', 'NFKB', weight=2)
+        # G.add_edge('INCY', 'SOCS1', weight=1)
+        # G.add_edge('SOCS1', 'NFKB', weight=-1)
+        # G.add_edge('SOCS1', 'MAL', weight=-1)
+        # self.network = G
 
     def test_state_space(self):
-        nodes = self.network_service.network.nodes
-        result = list(NetworkAnalyser.generate_state_space(self.network_service.network))
+        result = NetworkAnalyser.get_state_space(self.network)
         expected = [{'x': 0, 'y': 0}, {'x': 0, 'y': 1}, {'x': 1, 'y': 0}, {'x': 1, 'y': 1}, {'x': 2, 'y': 0},
                     {'x': 2, 'y': 1}]
-        self.assertListEqual(result, expected)
+        self.assertEqual(result, expected)
 
     def test_state_graph(self):
         parameters = {
@@ -44,22 +39,16 @@ class NetworkTestCase(TestCase):
                 ([], 0,), (['x'], 1)
             ]
         }
-        graph = NetworkAnalyser.get_state_graph(self.network_service.network, parameters)
+        graph = NetworkAnalyser.get_state_graph(self.network, parameters)
         result = list(graph.nodes)
         expected = ['0,0', '0,1', '1,0', '1,1', '2,0', '2,1']
         self.assertListEqual(result, expected)
 
     def test_sif_converter(self):
-        write_sif(self.network_service.network, 'test.sif')
-        G = read_sif("test.sif")
+        with io.StringIO('') as f:
+            write_sif(self.network, f)
+            f.seek(0)
+            G = read_sif(f)
         em = nx.algorithms.isomorphism.generic_edge_match('weight', 1, lambda x, y: eq(str(x), str(y)))
-        result = nx.is_isomorphic(self.network_service.network, G, edge_match=em)
+        result = nx.is_isomorphic(self.network, G, edge_match=em)
         self.assertTrue(result)
-
-    def test_get_all_possible_params(self):
-        graphs = NetworkAnalyser.get_possible_parameters(self.network_service.network)
-        print(graphs)
-        self.assertTrue(True)
-
-    def tearDown(self):
-        self.network_service.clear()

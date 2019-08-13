@@ -1,0 +1,2 @@
+networkx==2.3
+twine==1.13.0

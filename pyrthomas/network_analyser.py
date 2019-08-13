@@ -1,41 +1,39 @@
 import itertools
+from typing import Tuple, Dict, List
 
 from networkx import DiGraph, nx
-from networkx.classes.reportviews import EdgeView
+from networkx.classes.reportviews import EdgeView, NodeView
 
-from . import utils
+from pyrthomas import utils
 
 
 class NetworkAnalyser:
 
     @staticmethod
-    def get_predecessors(network: DiGraph):
-        result = dict()
+    def set_predecessor_combinations(network: DiGraph):
         for node in network.nodes:
-            predecessors = tuple(nx.DiGraph.predecessors(network, node))
-            combinations = utils.all_subsets(predecessors)
-            result[node] = tuple(combinations)
-        return result
+            predecessors = frozenset(nx.DiGraph.predecessors(network, node))
+            combinations = frozenset(utils.all_subsets(predecessors))
+            nx.set_node_attributes(network, {node: combinations}, 'predecessor_combinations')
 
     @staticmethod
-    def generate_state_space(graph: DiGraph):
-        nodes = graph.nodes
-        parameters = list()
-        for node in nodes:
-            edges_from_node = graph.edges(node, data=True)
-            max_weighted_edge = max(edges_from_node, key=lambda x: utils.get_weight(x, True))
-            max_threshold = utils.get_weight(max_weighted_edge, True)
-            values = tuple(range(max_threshold + 1))
-            parameters.append(values)
-        state_space = tuple(itertools.product(*parameters))
-        for element in state_space:
-            yield dict(zip(nodes, element))
+    def get_state_space(graph: DiGraph) -> List[Dict[str, int]]:
+        max_thresholds = [NetworkAnalyser.get_max_threshold(graph, node) for node in graph.nodes]
+        state_space = tuple(itertools.product(*max_thresholds))
+        return [dict(zip(graph.nodes, state)) for state in state_space]
+
+    @staticmethod
+    def get_max_threshold(graph: DiGraph, node: NodeView) -> Tuple[int]:
+        edges = graph.edges(node, data=True)
+        max_weighted_edge = max(edges, key=lambda x: utils.get_weight(x, absolute=True))
+        max_threshold = utils.get_weight(max_weighted_edge, True)
+        return tuple(range(max_threshold + 1))
 
     @staticmethod
     def get_state_graph(network: DiGraph, parameters) -> DiGraph:
-        state_space = list(NetworkAnalyser.generate_state_space(network))
+        state_space = NetworkAnalyser.get_state_space(network)
         state_graph = nx.DiGraph()
-        state_space_nodes = [utils.create_node_from_dict(entry) for entry in state_space]
+        state_space_nodes = [utils.create_node_from_dict(state) for state in state_space]
         state_graph.add_nodes_from(state_space_nodes)
 
         resources = NetworkAnalyser.calculate_resources(network, state_space)
@@ -46,6 +44,7 @@ class NetworkAnalyser:
 
         edges = NetworkAnalyser.generate_edges(next_states)
         state_graph.add_edges_from(edges)
+        state_graph.graph['parameters'] = parameters
         return state_graph
 
     @staticmethod
@@ -90,16 +89,16 @@ class NetworkAnalyser:
         return resources
 
     @staticmethod
-    def get_cycles(network: nx.DiGraph):
+    def get_cycles(network: DiGraph):
         return nx.simple_cycles(network)
 
     @staticmethod
-    def get_deadlock_states(network: nx.DiGraph):
+    def get_deadlock_states(network: DiGraph):
         out_degree_iter = network.out_degree(network.nodes)
         return [node for node, out_degree in out_degree_iter if out_degree == 0]
 
     @staticmethod
-    def calculate_resources(network, state_space):
+    def calculate_resources(network: DiGraph, state_space: List[Dict[str, int]]):
         resources = dict()
         for state in state_space:
             node = dict()
@@ -112,7 +111,6 @@ class NetworkAnalyser:
                         entity_resources.append(edge[0])
                 entity_resources.sort()
                 node[key] = entity_resources
-
             state_key = tuple(state.items())
             resources[state_key] = node
         return resources
@@ -122,7 +120,7 @@ class NetworkAnalyser:
         nodes = network.nodes
         parameters = dict()
         for node in nodes:
-            predecessors = tuple(nx.DiGraph.predecessors(network, node))
+            predecessors = frozenset(nx.DiGraph.predecessors(network, node))
             required_interactions = [(interaction, None) for interaction in
                                      utils.all_subsets(predecessors)]
             parameters[node] = required_interactions
@@ -142,11 +140,11 @@ class NetworkAnalyser:
         for node in network.nodes:
             combinations[node] = list()
             max_threshold = utils.get_max_weighted_edge_threashold(network, node)
-            predecessors = tuple(nx.DiGraph.predecessors(network, node))
+            predecessors = frozenset(nx.DiGraph.predecessors(network, node))
             required_interactions = list(utils.all_subsets(predecessors))
             for arrangement in itertools.product(range(0, max_threshold + 1), repeat=len(required_interactions)):
-                arranged_combinition = list(zip(required_interactions, arrangement))
-                combinations[node].append(arranged_combinition)
+                arranged_combination = list(zip(required_interactions, arrangement))
+                combinations[node].append(arranged_combination)
         return [dict(zip(combinations, v)) for v in itertools.product(*combinations.values())]
 
     @staticmethod

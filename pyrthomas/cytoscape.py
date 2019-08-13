@@ -9,8 +9,8 @@ if PYTHON_3:
     unicode = str
 
 
-@open_file(0, mode='rb')
-def read_sif(path, connector=None, encoding='UTF-8'):
+@open_file(0, mode='r')
+def read_sif(path, connector=None):
     """Read graph in cytoscape SIF format from path.
 
     Parameters
@@ -22,7 +22,7 @@ def read_sif(path, connector=None, encoding='UTF-8'):
     -------
     G : NetworkX MultiGraph or MultiDiGraph."""
 
-    lines = (line.decode(encoding) for line in path)
+    lines = (line for line in path)
     G = nx.DiGraph()
     for i in lines:
         l = i.split()
