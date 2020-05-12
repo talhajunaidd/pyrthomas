@@ -1,7 +1,7 @@
 import itertools
 from typing import Tuple, Dict, List
 
-from networkx import DiGraph, nx
+from networkx import DiGraph, simple_cycles
 from networkx.classes.reportviews import EdgeView, NodeView
 
 from pyrthomas import utils
@@ -12,7 +12,7 @@ class NetworkAnalyser:
     @staticmethod
     def set_predecessor_combinations(network: DiGraph):
         for node in network.nodes:
-            predecessors = frozenset(nx.DiGraph.predecessors(network, node))
+            predecessors = frozenset(DiGraph.predecessors(network, node))
             combinations = frozenset(utils.all_subsets(predecessors))
             nx.set_node_attributes(network, {node: combinations}, 'predecessor_combinations')
 
@@ -30,9 +30,17 @@ class NetworkAnalyser:
         return tuple(range(max_threshold + 1))
 
     @staticmethod
-    def get_state_graph(network: DiGraph, parameters) -> DiGraph:
+    def get_state_graph(network: DiGraph, parameters: Dict[str, List[Tuple[List[str], int]]]) -> DiGraph:
+        """
+        Args:
+            network: Interaction graph in networkx format
+            parameters: Parameters for state graph representing the current state of the entities
+
+        Returns:
+            Returns state graph in teh networkx format
+        """
         state_space = NetworkAnalyser.get_state_space(network)
-        state_graph = nx.DiGraph()
+        state_graph = DiGraph()
         state_space_nodes = [utils.create_node_from_dict(state) for state in state_space]
         state_graph.add_nodes_from(state_space_nodes)
 
@@ -90,7 +98,7 @@ class NetworkAnalyser:
 
     @staticmethod
     def get_cycles(network: DiGraph):
-        return nx.simple_cycles(network)
+        return simple_cycles(network)
 
     @staticmethod
     def get_deadlock_states(network: DiGraph):
@@ -120,7 +128,7 @@ class NetworkAnalyser:
         nodes = network.nodes
         parameters = dict()
         for node in nodes:
-            predecessors = frozenset(nx.DiGraph.predecessors(network, node))
+            predecessors = frozenset(DiGraph.predecessors(network, node))
             required_interactions = [(interaction, None) for interaction in
                                      utils.all_subsets(predecessors)]
             parameters[node] = required_interactions
@@ -140,7 +148,7 @@ class NetworkAnalyser:
         for node in network.nodes:
             combinations[node] = list()
             max_threshold = utils.get_max_weighted_edge_threashold(network, node)
-            predecessors = frozenset(nx.DiGraph.predecessors(network, node))
+            predecessors = frozenset(DiGraph.predecessors(network, node))
             required_interactions = list(utils.all_subsets(predecessors))
             for arrangement in itertools.product(range(0, max_threshold + 1), repeat=len(required_interactions)):
                 arranged_combination = list(zip(required_interactions, arrangement))

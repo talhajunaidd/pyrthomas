@@ -2,11 +2,6 @@ import sys
 
 from networkx.utils import open_file
 import networkx as nx
-from itertools import repeat
-
-PYTHON_3 = sys.version_info[0] == 3
-if PYTHON_3:
-    unicode = str
 
 
 @open_file(0, mode='r')
@@ -59,7 +54,6 @@ def write_sif(G: nx.DiGraph, path, connector=None):
 
     Path can be a string or a file handle.
     """
-
     for edge in list(G.edges(data=True)):
         link = connector if connector is not None else edge[2]['weight']
         path.write("%s\t%s\t%s\n" % (edge[0],
