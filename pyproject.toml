@@ -2,12 +2,23 @@
 name = "pyrthomas"
 version = "0.0.10"
 description = "Python implementation for René Thomas's Framework"
-keywords = ["biological regulatory networks", "systems biology", "qualitative modelling"]
+keywords = [
+    "biological regulatory networks",
+    "systems biology",
+    "qualitative modelling",
+    "Rene Thomas",
+    "BRN"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 authors = ["Talha Junaid <talhajunaidd@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/talhajunaidd/pyrthomas"
-repository = "https://github.com/talhajunaidd/pyrthomas"
+repository = "git@github.com:talhajunaidd/pyrthomas.git"
 include = [
     "LICENSE",
 ]
