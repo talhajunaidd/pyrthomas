@@ -6,3 +6,4 @@ __pycache__
 *.pyc
 graph_analytica.gpickle
 docs/_build
+/.venv
